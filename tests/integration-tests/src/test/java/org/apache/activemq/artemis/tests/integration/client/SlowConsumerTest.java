@@ -18,6 +18,7 @@ package org.apache.activemq.artemis.tests.integration.client;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -36,6 +37,9 @@ import org.apache.activemq.artemis.api.core.client.MessageHandler;
 import org.apache.activemq.artemis.api.core.client.ServerLocator;
 import org.apache.activemq.artemis.api.core.management.CoreNotificationType;
 import org.apache.activemq.artemis.api.core.management.ManagementHelper;
+import org.apache.activemq.artemis.core.client.impl.ClientConsumerInternal;
+import org.apache.activemq.artemis.core.client.impl.ClientSessionImpl;
+import org.apache.activemq.artemis.core.protocol.core.impl.ActiveMQConsumerContext;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
 import org.apache.activemq.artemis.core.settings.impl.SlowConsumerPolicy;
@@ -111,6 +115,49 @@ public class SlowConsumerTest extends ActiveMQTestBase {
       }
       catch (ActiveMQObjectClosedException e) {
          assertEquals(e.getType(), ActiveMQExceptionType.OBJECT_CLOSED);
+      }
+   }
+
+   @Test
+   public void testDisableSlowConsumerReconnectWithKilled() throws Exception {
+      ClientSessionFactory sf = createSessionFactory(locator);
+
+      ClientSession session = addClientSession(sf.createSession(false, true, true, false));
+
+      session.createQueue(QUEUE, QUEUE, null, false);
+
+      ClientProducer producer = addClientProducer(session.createProducer(QUEUE));
+
+      final int numMessages = 25;
+
+      for (int i = 0; i < numMessages; i++) {
+         producer.send(createTextMessage(session, "m" + i));
+      }
+
+      ClientConsumer consumer = addClientConsumer(session.createConsumer(QUEUE));
+      session.start();
+      Set<ClientConsumerInternal> consumers = ((ClientSessionImpl) session).cloneConsumers();
+      assertNotNull(consumers);
+      Thread.sleep(3000);
+
+      try {
+         consumer.receiveImmediate();
+         fail();
+      }
+      catch (ActiveMQObjectClosedException e) {
+         assertEquals(e.getType(), ActiveMQExceptionType.OBJECT_CLOSED);
+      }
+      finally {
+         int flag = 0;
+         if (session instanceof ClientSessionImpl) {
+            consumers = ((ClientSessionImpl) session).cloneConsumers();
+            for (ClientConsumerInternal cc : consumers) {
+               if (((ActiveMQConsumerContext) cc.getConsumerContext()).getId() == ((ActiveMQConsumerContext) consumer.getConsumerContext()).getId()) {
+                  flag = 1;
+               }
+            }
+            assertEquals(0, flag);
+         }
       }
    }
 

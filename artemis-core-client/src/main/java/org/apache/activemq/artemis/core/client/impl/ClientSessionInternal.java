@@ -22,6 +22,7 @@ import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.api.core.client.ClientConsumer;
 import org.apache.activemq.artemis.api.core.client.ClientSession;
 import org.apache.activemq.artemis.api.core.client.SendAcknowledgementHandler;
+import org.apache.activemq.artemis.core.protocol.core.impl.ActiveMQConsumerContext;
 import org.apache.activemq.artemis.spi.core.protocol.RemotingConnection;
 import org.apache.activemq.artemis.spi.core.remoting.ConsumerContext;
 import org.apache.activemq.artemis.spi.core.remoting.ReadyListener;
@@ -47,6 +48,8 @@ public interface ClientSessionInternal extends ClientSession {
    void addProducer(ClientProducerInternal producer);
 
    void removeConsumer(ClientConsumerInternal consumer) throws ActiveMQException;
+
+   void removeConsumer(ActiveMQConsumerContext consumerContext);
 
    void removeProducer(ClientProducerInternal producer);
 

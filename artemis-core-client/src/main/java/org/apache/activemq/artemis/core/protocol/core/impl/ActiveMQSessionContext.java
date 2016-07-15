@@ -759,6 +759,12 @@ public class ActiveMQSessionContext extends SessionContext {
       handleReceiveProducerFailCredits(message.getAddress(), message.getCredits());
    }
 
+   protected void handleReceiveSlowConsumerKillMessage(SessionConsumerCloseMessage message) {
+      ActiveMQConsumerContext consumerContext = new ActiveMQConsumerContext(message.getConsumerID());
+
+      session.removeConsumer(consumerContext);
+   }
+
    class ClientSessionPacketHandler implements ChannelHandler {
 
       @Override
@@ -793,6 +799,11 @@ public class ActiveMQSessionContext extends SessionContext {
                }
                case PacketImpl.SESS_PRODUCER_FAIL_CREDITS: {
                   handleReceiveProducerFailCredits((SessionProducerCreditsFailMessage) packet);
+
+                  break;
+               }
+               case PacketImpl.SESS_CONSUMER_CLOSE: {
+                  handleReceiveSlowConsumerKillMessage((SessionConsumerCloseMessage) packet);
 
                   break;
                }

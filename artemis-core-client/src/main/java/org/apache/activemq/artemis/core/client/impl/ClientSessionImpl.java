@@ -42,6 +42,7 @@ import org.apache.activemq.artemis.api.core.client.SendAcknowledgementHandler;
 import org.apache.activemq.artemis.api.core.client.SessionFailureListener;
 import org.apache.activemq.artemis.core.client.ActiveMQClientLogger;
 import org.apache.activemq.artemis.core.client.ActiveMQClientMessageBundle;
+import org.apache.activemq.artemis.core.protocol.core.impl.ActiveMQConsumerContext;
 import org.apache.activemq.artemis.core.remoting.FailureListener;
 import org.apache.activemq.artemis.spi.core.protocol.RemotingConnection;
 import org.apache.activemq.artemis.spi.core.remoting.ConsumerContext;
@@ -806,6 +807,13 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
    public void removeConsumer(final ClientConsumerInternal consumer) throws ActiveMQException {
       synchronized (consumers) {
          consumers.remove(consumer.getConsumerContext());
+      }
+   }
+
+   @Override
+   public void removeConsumer(ActiveMQConsumerContext consumerContext) {
+      synchronized (consumers) {
+         consumers.remove(consumerContext);
       }
    }
 
@@ -1787,4 +1795,5 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
          }
       });
    }
+
 }

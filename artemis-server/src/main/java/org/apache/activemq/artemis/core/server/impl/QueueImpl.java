@@ -58,6 +58,9 @@ import org.apache.activemq.artemis.core.postoffice.DuplicateIDCache;
 import org.apache.activemq.artemis.core.postoffice.PostOffice;
 import org.apache.activemq.artemis.core.postoffice.impl.LocalQueueBinding;
 import org.apache.activemq.artemis.core.postoffice.impl.PostOfficeImpl;
+import org.apache.activemq.artemis.core.protocol.core.Channel;
+import org.apache.activemq.artemis.core.protocol.core.CoreRemotingConnection;
+import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionConsumerCloseMessage;
 import org.apache.activemq.artemis.core.remoting.server.RemotingService;
 import org.apache.activemq.artemis.core.server.ActiveMQMessageBundle;
 import org.apache.activemq.artemis.core.server.ActiveMQServerLogger;
@@ -2952,6 +2955,19 @@ public class QueueImpl implements Queue {
                   if (connection != null) {
                      ActiveMQServerLogger.LOGGER.slowConsumerDetected(serverConsumer.getSessionID(), serverConsumer.getID(), getName().toString(), connection.getRemoteAddress(), threshold, consumerRate);
                      if (policy.equals(SlowConsumerPolicy.KILL)) {
+                        if (connection instanceof CoreRemotingConnection) {
+                           CoreRemotingConnection coreconnection = (CoreRemotingConnection)connection;
+                           Channel channel1 = coreconnection.getChannel(1, -1);
+                           SessionConsumerCloseMessage response = new SessionConsumerCloseMessage(serverConsumer.getID());
+                           removeConsumer(serverConsumer);
+                           try {
+                              channel1.send(response, -1);
+                              serverConsumer.close(false);
+                           }
+                           catch (Exception e) {
+                              ActiveMQServerLogger.LOGGER.errorClosingConsumer(e);
+                           }
+                        }
                         remotingService.removeConnection(connection.getID());
                         connection.fail(ActiveMQMessageBundle.BUNDLE.connectionsClosedByManagement(connection.getRemoteAddress()));
                      }
